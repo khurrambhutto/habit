@@ -1,0 +1,12 @@
+# alfred is a big project aiming to make a fully autonomous personel agent 
+## we will build it step by step using iterative aproach
+
+- flutter / dart for frontend
+- supabase for backend
+
+- version 1.0 will be making a todo app, which will have following features:
+ - create a task 
+ - delete a task
+ - mark task completed 
+ - have a database which will store all data
+ - authentication stuff
