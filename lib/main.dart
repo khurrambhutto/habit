@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 import 'screens/habit_tracker_screen.dart';
 import 'screens/auth_screen.dart';
 import 'services/auth_service.dart';
@@ -28,10 +29,11 @@ class HabitApp extends StatelessWidget {
       title: 'Habit Tracker',
       theme: ThemeData(
         brightness: Brightness.light,
-        primaryColor: const Color(0xFF6C63FF),
-        scaffoldBackgroundColor: const Color(0xFFF3F4F8),
+        primaryColor: const Color(0xFF2A9D8F),
+        scaffoldBackgroundColor: const Color(0xFFFAF9F5),
+
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF6C63FF),
+          backgroundColor: Color(0xFF2A9D8F),
           elevation: 0,
           centerTitle: true,
           titleTextStyle: TextStyle(
@@ -42,7 +44,7 @@ class HabitApp extends StatelessWidget {
           ),
         ),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
-          backgroundColor: Color(0xFF6C63FF),
+          backgroundColor: Color(0xFF2A9D8F),
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
@@ -57,7 +59,7 @@ class HabitApp extends StatelessWidget {
           ),
         ),
         cardTheme: CardThemeData(
-          color: Colors.white,
+          color: const Color(0xFFF9FAF5),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),

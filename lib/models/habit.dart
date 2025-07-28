@@ -3,6 +3,7 @@ class Habit {
   final String name;
   final int streak;
   final bool checkedToday;
+  final DateTime? lastCheckedDate;
   final String? userId;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -12,6 +13,7 @@ class Habit {
     required this.name,
     this.streak = 0,
     this.checkedToday = false,
+    this.lastCheckedDate,
     this.userId,
     this.createdAt,
     this.updatedAt,
@@ -24,6 +26,9 @@ class Habit {
       name: json['name'] as String,
       streak: json['streak'] as int? ?? 0,
       checkedToday: json['checked_today'] as bool? ?? false,
+      lastCheckedDate: json['last_checked_date'] != null
+          ? DateTime.parse(json['last_checked_date'] as String)
+          : null,
       userId: json['user_id'] as String?,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
@@ -41,6 +46,7 @@ class Habit {
       'name': name,
       'streak': streak,
       'checked_today': checkedToday,
+      'last_checked_date': lastCheckedDate?.toIso8601String(),
       if (userId != null) 'user_id': userId,
       if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
       if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
@@ -53,6 +59,7 @@ class Habit {
     String? name,
     int? streak,
     bool? checkedToday,
+    DateTime? lastCheckedDate,
     String? userId,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -62,6 +69,7 @@ class Habit {
       name: name ?? this.name,
       streak: streak ?? this.streak,
       checkedToday: checkedToday ?? this.checkedToday,
+      lastCheckedDate: lastCheckedDate ?? this.lastCheckedDate,
       userId: userId ?? this.userId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
