@@ -1,78 +1,99 @@
 class Habit {
-  final int? id;
+  final String id;
   final String name;
-  final int streak;
-  final bool checkedToday;
-  final DateTime? lastCheckedDate;
-  final String? userId;
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
-
+  bool isCompleted;
+  int currentStreak;
+  int bestStreak;
+  DateTime createdDate;
+  DateTime? lastCompletedDate;
+  
   Habit({
-    this.id,
     required this.name,
-    this.streak = 0,
-    this.checkedToday = false,
-    this.lastCheckedDate,
-    this.userId,
-    this.createdAt,
-    this.updatedAt,
-  });
+    this.isCompleted = false,
+    this.currentStreak = 0,
+    this.bestStreak = 0,
+    DateTime? createdDate,
+  }) : 
+    id = DateTime.now().millisecondsSinceEpoch.toString(),
+    createdDate = createdDate ?? DateTime.now();
 
-  // Convert from Supabase JSON to Habit object
-  factory Habit.fromJson(Map<String, dynamic> json) {
-    return Habit(
-      id: json['id'] as int?,
-      name: json['name'] as String,
-      streak: json['streak'] as int? ?? 0,
-      checkedToday: json['checked_today'] as bool? ?? false,
-      lastCheckedDate: json['last_checked_date'] != null
-          ? DateTime.parse(json['last_checked_date'] as String)
-          : null,
-      userId: json['user_id'] as String?,
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
-          : null,
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'] as String)
-          : null,
-    );
+  void toggleComplete() {
+    final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
+    
+    if (isCompleted) {
+      // Uncompleting - reset streak if it was completed today
+      if (lastCompletedDate != null) {
+        final lastDate = DateTime(
+          lastCompletedDate!.year, 
+          lastCompletedDate!.month, 
+          lastCompletedDate!.day
+        );
+        if (lastDate.isAtSameMomentAs(todayDate)) {
+          currentStreak = 0;
+        }
+      }
+      isCompleted = false;
+      lastCompletedDate = null;
+    } else {
+      // Completing
+      isCompleted = true;
+      
+      // Check if this continues the streak
+      if (lastCompletedDate != null) {
+        final lastDate = DateTime(
+          lastCompletedDate!.year, 
+          lastCompletedDate!.month, 
+          lastCompletedDate!.day
+        );
+        final yesterday = todayDate.subtract(Duration(days: 1));
+        
+        if (lastDate.isAtSameMomentAs(yesterday)) {
+          // Consecutive day - increase streak
+          currentStreak++;
+        } else if (lastDate.isAtSameMomentAs(todayDate)) {
+          // Same day - no change to streak
+        } else {
+          // Gap in streak - reset to 1
+          currentStreak = 1;
+        }
+      } else {
+        // First completion ever
+        currentStreak = 1;
+      }
+      
+      // Set the completion date after logic
+      lastCompletedDate = today;
+      
+      // Update best streak if current is higher
+      if (currentStreak > bestStreak) {
+        bestStreak = currentStreak;
+      }
+    }
   }
 
-  // Convert from Habit object to JSON for Supabase
-  Map<String, dynamic> toJson() {
-    return {
-      if (id != null) 'id': id,
-      'name': name,
-      'streak': streak,
-      'checked_today': checkedToday,
-      'last_checked_date': lastCheckedDate?.toIso8601String(),
-      if (userId != null) 'user_id': userId,
-      if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
-      if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
-    };
+  void resetStreak() {
+    currentStreak = 0;
+    bestStreak = 0;
+    isCompleted = false;
+    lastCompletedDate = null;
   }
 
-  // Create a copy with modified fields
-  Habit copyWith({
-    int? id,
-    String? name,
-    int? streak,
-    bool? checkedToday,
-    DateTime? lastCheckedDate,
-    String? userId,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-  }) {
-    return Habit(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      streak: streak ?? this.streak,
-      checkedToday: checkedToday ?? this.checkedToday,
-      lastCheckedDate: lastCheckedDate ?? this.lastCheckedDate,
-      userId: userId ?? this.userId,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-    );
+  // Check if streak should be reset due to missed days
+  void checkStreakReset() {
+    if (lastCompletedDate != null && !isCompleted) {
+      final today = DateTime.now();
+      final todayDate = DateTime(today.year, today.month, today.day);
+      final lastDate = DateTime(
+        lastCompletedDate!.year, 
+        lastCompletedDate!.month, 
+        lastCompletedDate!.day
+      );
+      final daysDifference = todayDate.difference(lastDate).inDays;
+      
+      if (daysDifference > 1) {
+        currentStreak = 0;
+      }
+    }
   }
-}
+} 

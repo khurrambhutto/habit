@@ -1,6 +1,6 @@
 {
-    "name": "alfred",
-    "short_name": "alfred",
+    "name": "habit",
+    "short_name": "habit",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

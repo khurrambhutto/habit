@@ -7,23 +7,24 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:alfred/main.dart';
+
+import 'package:habit/main.dart';
 
 void main() {
-  testWidgets('Habit tracker app loads correctly', (WidgetTester tester) async {
-    // Build our app and trigger a frame
-    await tester.pumpWidget(const HabitApp());
+  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+    // Build our app and trigger a frame.
+    await tester.pumpWidget(const MyApp());
 
-    // Wait for any async operations to complete
-    await tester.pumpAndSettle();
+    // Verify that our counter starts at 0.
+    expect(find.text('0'), findsOneWidget);
+    expect(find.text('1'), findsNothing);
 
-    // Verify the app title is displayed
-    expect(find.text('Habit Tracker'), findsOneWidget);
+    // Tap the '+' icon and trigger a frame.
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pump();
 
-    // Verify the input field is present
-    expect(find.byType(TextField), findsOneWidget);
-
-    // Verify the add button is present
-    expect(find.byIcon(Icons.add), findsOneWidget);
+    // Verify that our counter has incremented.
+    expect(find.text('0'), findsNothing);
+    expect(find.text('1'), findsOneWidget);
   });
 }
