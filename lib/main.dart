@@ -75,6 +75,25 @@ class _HabitHomeState extends State<HabitHome> {
       });
       
       final habits = await SupabaseService.getHabits();
+      
+      // Check for daily resets and update any habits that need it
+      bool needsUpdate = false;
+      for (final habit in habits) {
+        final wasCompleted = habit.isCompleted;
+        habit.checkDailyReset(); // Trigger daily reset check
+        
+        // If habit status changed, we need to update the database
+        if (wasCompleted != habit.isCompleted) {
+          needsUpdate = true;
+          try {
+            await SupabaseService.updateHabit(habit);
+          } catch (e) {
+            // If update fails, revert the change
+            habit.isCompleted = wasCompleted;
+          }
+        }
+      }
+      
       setState(() {
         _habits = habits;
         _isLoading = false;

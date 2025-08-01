@@ -69,8 +69,11 @@ class Habit {
     final today = DateTime.now();
     final todayDate = DateTime(today.year, today.month, today.day);
     
+    // Check if habit should be auto-reset for new day
+    checkDailyReset();
+    
     if (isCompleted) {
-      // Uncompleting - reset streak if it was completed today
+      // Uncompleting - only if it was completed today
       if (lastCompletedDate != null) {
         final lastDate = DateTime(
           lastCompletedDate!.year, 
@@ -78,16 +81,17 @@ class Habit {
           lastCompletedDate!.day
         );
         if (lastDate.isAtSameMomentAs(todayDate)) {
-          currentStreak = 0;
+          // Only allow uncompleting if it was completed today
+          isCompleted = false;
+          lastCompletedDate = null;
+          currentStreak = 0; // Reset streak when uncompleting today's task
         }
       }
-      isCompleted = false;
-      lastCompletedDate = null;
     } else {
-      // Completing
+      // Completing for today
       isCompleted = true;
       
-      // Check if this continues the streak
+      // Calculate streak based on last completion
       if (lastCompletedDate != null) {
         final lastDate = DateTime(
           lastCompletedDate!.year, 
@@ -100,7 +104,8 @@ class Habit {
           // Consecutive day - increase streak
           currentStreak++;
         } else if (lastDate.isAtSameMomentAs(todayDate)) {
-          // Same day - no change to streak
+          // Already completed today (shouldn't happen after reset check)
+          return;
         } else {
           // Gap in streak - reset to 1
           currentStreak = 1;
@@ -110,7 +115,7 @@ class Habit {
         currentStreak = 1;
       }
       
-      // Set the completion date after logic
+      // Set the completion date to today
       lastCompletedDate = today;
       
       // Update best streak if current is higher
@@ -120,6 +125,50 @@ class Habit {
       
       // Check if user earned a streak freeze (3 consecutive days)
       _checkStreakFreezeEarning();
+    }
+  }
+
+  // Check if habit should be reset for a new day
+  void checkDailyReset() {
+    if (!isCompleted) return; // Already unchecked
+    
+    final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
+    
+    if (lastCompletedDate != null) {
+      final lastDate = DateTime(
+        lastCompletedDate!.year, 
+        lastCompletedDate!.month, 
+        lastCompletedDate!.day
+      );
+      
+      // If last completion was not today, reset the habit
+      if (!lastDate.isAtSameMomentAs(todayDate)) {
+        isCompleted = false;
+        
+        // Check if streak should be broken due to missed days
+        final daysDifference = todayDate.difference(lastDate).inDays;
+        if (daysDifference > 1) {
+          // More than 1 day gap - check for streak freeze usage
+          if (streakFreezes > 0 && daysDifference == 2) {
+            // Exactly 1 missed day and we have freezes - auto-use freeze
+            _autoUseStreakFreeze();
+          } else {
+            // Too many missed days or no freezes - break streak
+            currentStreak = 0;
+          }
+        }
+        // If daysDifference == 1 (yesterday), streak continues when completed today
+      }
+    }
+  }
+
+  // Automatically use a streak freeze for missed day
+  void _autoUseStreakFreeze() {
+    if (streakFreezes > 0) {
+      streakFreezes--;
+      lastStreakFreezeUsed = DateTime.now();
+      // Keep the streak intact
     }
   }
 
