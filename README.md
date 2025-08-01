@@ -2,6 +2,10 @@
 
 A modern Flutter habit tracking app with streak freezes and beautiful UI.
 
+## App Preview
+
+![App Screenshot](first.png)
+
 ## Features
 
 - **Habit Management** - Add, complete, and delete habits
