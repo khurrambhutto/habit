@@ -1,32 +1,24 @@
 # Habit Tracker
 
-A Flutter-based habit tracking application with streak monitoring and completion tracking.
+A modern Flutter habit tracking app with streak freezes and beautiful UI.
 
 ## Features
 
-- **Add/Remove Habits** - Create and delete custom habits
-- **Completion Tracking** - Mark habits as complete/incomplete with checkboxes
-- **Streak Monitoring** - Track consecutive days for each habit
-- **Visual Feedback** - Completed habits show strikethrough and grayed text
-- **Daily Stats** - View completion progress (X/Y format)
-- **Confirmation Dialogs** - Safe deletion with confirmation prompts
-
-## Technical Implementation
-
-- **Custom Habit Model** - Advanced data structure with streak calculation
-- **Smart Streak Logic** - Handles consecutive days, gaps, and resets
-- **Responsive UI** - Material Design with indigo theme
-- **State Management** - Flutter StatefulWidget for real-time updates
+- **Habit Management** - Add, complete, and delete habits
+- **Streak Tracking** - Monitor consecutive days with visual counters
+- **Streak Freezes** - Earn freezes every 3 days, use them to protect streaks
+- **Quick Actions** - Long press habits for instant freeze usage and deletion
+- **Progress Dashboard** - Circular progress indicator with daily stats
 
 ## Getting Started
 
-1. Clone the repository
-2. Run `flutter pub get`
-3. Run `flutter run`
+```bash
+flutter pub get
+flutter run
+```
 
-## Current Status
+## Tech Stack
 
-✅ Basic habit management  
-✅ Streak tracking system  
-✅ UI/UX improvements  
-✅ Completion statistics  
+- Flutter/Dart
+- Material Design
+- Custom streak logic with freeze system  
