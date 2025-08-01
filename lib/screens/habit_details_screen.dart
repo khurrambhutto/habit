@@ -170,7 +170,7 @@ class HabitDetailsScreen extends StatelessWidget {
                       child: ElevatedButton(
                         onPressed: () {
                           Navigator.pop(context); // Close dialog
-                          Navigator.pop(context, habitIndex); // Return to main screen with index to delete
+                          Navigator.pop(context, true); // Return to main screen with delete flag
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red.shade400,

@@ -10,15 +10,60 @@ class Habit {
   DateTime? lastStreakFreezeUsed; // Track when streak freeze was last used
   
   Habit({
+    String? id,
     required this.name,
     this.isCompleted = false,
     this.currentStreak = 0,
     this.bestStreak = 0,
     this.streakFreezes = 0,
     DateTime? createdDate,
+    this.lastCompletedDate,
+    this.lastStreakFreezeUsed,
   }) : 
-    id = DateTime.now().millisecondsSinceEpoch.toString(),
+    id = id ?? DateTime.now().millisecondsSinceEpoch.toString(),
     createdDate = createdDate ?? DateTime.now();
+
+  // Factory constructor for creating from JSON (Supabase)
+  factory Habit.fromJson(Map<String, dynamic> json) {
+    return Habit(
+      id: json['id'],
+      name: json['name'],
+      isCompleted: json['is_completed'] ?? false,
+      currentStreak: json['current_streak'] ?? 0,
+      bestStreak: json['best_streak'] ?? 0,
+      streakFreezes: json['streak_freezes'] ?? 0,
+      createdDate: json['created_date'] != null 
+          ? DateTime.parse(json['created_date'])
+          : DateTime.now(),
+      lastCompletedDate: json['last_completed_date'] != null
+          ? DateTime.parse(json['last_completed_date'])
+          : null,
+      lastStreakFreezeUsed: json['last_streak_freeze_used'] != null
+          ? DateTime.parse(json['last_streak_freeze_used'])
+          : null,
+    );
+  }
+
+  // Convert to JSON for Supabase
+  Map<String, dynamic> toJson() {
+    final json = {
+      'name': name,
+      'is_completed': isCompleted,
+      'current_streak': currentStreak,
+      'best_streak': bestStreak,
+      'streak_freezes': streakFreezes,
+      'created_date': createdDate.toIso8601String(),
+      'last_completed_date': lastCompletedDate?.toIso8601String(),
+      'last_streak_freeze_used': lastStreakFreezeUsed?.toIso8601String(),
+    };
+    
+    // Only include ID if it looks like a valid UUID (contains hyphens)
+    if (id.contains('-')) {
+      json['id'] = id;
+    }
+    
+    return json;
+  }
 
   void toggleComplete() {
     final today = DateTime.now();

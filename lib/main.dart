@@ -1,9 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/percent_indicator.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'models/habit.dart';
 import 'screens/habit_details_screen.dart';
+import 'screens/auth_screen.dart';
+import 'services/supabase_service.dart';
+import 'widgets/error_display.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Load environment variables
+  await dotenv.load(fileName: ".env");
+  
+  await Supabase.initialize(
+    url: dotenv.env['SUPABASE_URL']!,
+    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+  );
+  
   runApp(const MyApp());
 }
 
@@ -24,7 +39,7 @@ class MyApp extends StatelessWidget {
           centerTitle: true,
         ),
       ),
-      home: const HabitHome(),
+      home: const AuthWrapper(),
     );
   }
 }
@@ -39,18 +54,82 @@ class HabitHome extends StatefulWidget {
 class _HabitHomeState extends State<HabitHome> {
   final TextEditingController _controller = TextEditingController();
   List<Habit> _habits = [];
+  bool _isLoading = true;
   
   // Calculate completed habits count
   int get completedHabitsCount => _habits.where((habit) => habit.isCompleted).length;
   
   // Calculate completion percentage
   double get completionPercentage => _habits.isEmpty ? 0.0 : completedHabitsCount / _habits.length;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHabits();
+  }
+
+  Future<void> _loadHabits() async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+      
+      final habits = await SupabaseService.getHabits();
+      setState(() {
+        _habits = habits;
+        _isLoading = false;
+      });
+    } catch (error) {
+      setState(() {
+        _isLoading = false;
+      });
+      
+      if (mounted) {
+        ErrorDisplay.showError(context, error.toString());
+      }
+    }
+  }
   
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
-      body: Padding(
+      appBar: AppBar(
+        title: Text(
+          'My Habits',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'logout') {
+                _handleLogout();
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              PopupMenuItem<String>(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Logout'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      body: _isLoading
+          ? Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFFFFD200),
+              ),
+            )
+          : Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,10 +251,8 @@ class _HabitHomeState extends State<HabitHome> {
               scale: 1.2,
               child: Checkbox(
                 value: habit.isCompleted,
-                onChanged: (value) {
-                  setState(() {
-                    habit.toggleComplete();
-                  });
+                onChanged: (value) async {
+                  await _toggleHabitComplete(habit);
                 },
                 activeColor: Color(0xFFFFD200),
                 shape: RoundedRectangleBorder(
@@ -264,7 +341,7 @@ class _HabitHomeState extends State<HabitHome> {
                          // More options button
              IconButton(
                icon: Icon(Icons.more_vert, color: Colors.grey.shade600),
-               onPressed: () => _navigateToHabitDetails(habit, index),
+               onPressed: () => _navigateToHabitDetails(habit, _habits.indexOf(habit)),
              ),
           ],
           ),
@@ -315,17 +392,9 @@ class _HabitHomeState extends State<HabitHome> {
                     Container(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        onPressed: () {
-                          setState(() {
-                            habit.useStreakFreeze();
-                          });
+                        onPressed: () async {
+                          await _useStreakFreeze(habit);
                           Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Streak freeze used!'),
-                              backgroundColor: Colors.blue.shade400,
-                            ),
-                          );
                         },
                         icon: Icon(Icons.ac_unit, color: Colors.white),
                         label: Text(
@@ -376,7 +445,7 @@ class _HabitHomeState extends State<HabitHome> {
                     child: ElevatedButton.icon(
                       onPressed: () {
                         Navigator.pop(context);
-                        _showDeleteConfirmation(index);
+                        _showDeleteConfirmation(habit);
                       },
                       icon: Icon(Icons.delete_outline, color: Colors.white),
                       label: Text(
@@ -419,23 +488,21 @@ class _HabitHomeState extends State<HabitHome> {
     );
   }
 
-  void _showDeleteConfirmation(int index) {
+  void _showDeleteConfirmation(Habit habit) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Delete Habit'),
-        content: Text('Are you sure you want to delete "${_habits[index].name}"?'),
+        content: Text('Are you sure you want to delete "${habit.name}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
-              setState(() {
-                _habits.removeAt(index);
-              });
+            onPressed: () async {
               Navigator.pop(context);
+              await _deleteHabit(habit);
             },
             child: Text('Delete', style: TextStyle(color: Colors.red)),
           ),
@@ -544,14 +611,24 @@ class _HabitHomeState extends State<HabitHome> {
     );
   }
 
-  void _addHabit() {
+  Future<void> _addHabit() async {
     final text = _controller.text.trim();
     if (text.isNotEmpty) {
-      setState(() {
-        _habits.add(Habit(name: text));
-      });
-      _controller.clear();
-      Navigator.pop(context);
+      try {
+        final newHabit = Habit(name: text);
+        final createdHabit = await SupabaseService.createHabit(newHabit);
+        
+        setState(() {
+          _habits.add(createdHabit);
+        });
+        
+        _controller.clear();
+        Navigator.pop(context);
+      } catch (error) {
+              if (mounted) {
+        ErrorDisplay.showError(context, error.toString());
+      }
+      }
     }
   }
 
@@ -569,13 +646,86 @@ class _HabitHomeState extends State<HabitHome> {
       MaterialPageRoute(
         builder: (context) => HabitDetailsScreen(habit: habit, habitIndex: index),
       ),
-    ).then((deletedIndex) {
-      if (deletedIndex != null) {
-        setState(() {
-          _habits.removeAt(deletedIndex);
-        });
+    ).then((shouldDelete) {
+      if (shouldDelete == true) {
+        _deleteHabit(habit);
       }
     });
+  }
+
+  Future<void> _toggleHabitComplete(Habit habit) async {
+    try {
+      // Update locally first for immediate UI feedback
+      setState(() {
+        habit.toggleComplete();
+      });
+      
+      // Then update in database
+      await SupabaseService.updateHabit(habit);
+    } catch (error) {
+      // Revert the change if database update fails
+      setState(() {
+        habit.toggleComplete(); // Toggle back
+      });
+      
+      if (mounted) {
+        ErrorDisplay.showError(context, error.toString());
+      }
+    }
+  }
+
+  Future<void> _useStreakFreeze(Habit habit) async {
+    try {
+      // Update locally first
+      setState(() {
+        habit.useStreakFreeze();
+      });
+      
+      // Then update in database
+      await SupabaseService.updateHabit(habit);
+      
+      if (mounted) {
+        ErrorDisplay.showSuccess(context, 'Streak freeze used!');
+      }
+    } catch (error) {
+      // Revert the change if database update fails
+      setState(() {
+        habit.streakFreezes++; // Add it back
+        habit.lastStreakFreezeUsed = null; // Reset usage time
+      });
+      
+      if (mounted) {
+        ErrorDisplay.showError(context, error.toString());
+      }
+    }
+  }
+
+  Future<void> _deleteHabit(Habit habit) async {
+    try {
+      await SupabaseService.deleteHabit(habit.id);
+      
+      setState(() {
+        _habits.removeWhere((h) => h.id == habit.id);
+      });
+      
+      if (mounted) {
+        ErrorDisplay.showSuccess(context, 'Habit deleted successfully');
+      }
+    } catch (error) {
+      if (mounted) {
+        ErrorDisplay.showError(context, error.toString());
+      }
+    }
+  }
+
+  Future<void> _handleLogout() async {
+    try {
+      await SupabaseService.signOut();
+    } catch (error) {
+      if (mounted) {
+        ErrorDisplay.showError(context, error.toString());
+      }
+    }
   }
 
 
