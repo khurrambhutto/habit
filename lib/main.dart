@@ -8,6 +8,9 @@ import 'screens/auth_screen.dart';
 import 'services/supabase_service.dart';
 import 'widgets/error_display.dart';
 
+// Central color constant for consistent yellow throughout the app
+const Color invincibleYellow = Color(0xFFFFD200);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
@@ -33,7 +36,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.yellow,
         scaffoldBackgroundColor: Color(0xFF00AEEF),
         appBarTheme: AppBarTheme(
-          backgroundColor: Colors.white,
+          backgroundColor: Colors.transparent,
           foregroundColor: Colors.black87,
           elevation: 0,
           centerTitle: true,
@@ -77,14 +80,12 @@ class _HabitHomeState extends State<HabitHome> {
       final habits = await SupabaseService.getHabits();
       
       // Check for daily resets and update any habits that need it
-      bool needsUpdate = false;
       for (final habit in habits) {
         final wasCompleted = habit.isCompleted;
         habit.checkDailyReset(); // Trigger daily reset check
         
         // If habit status changed, we need to update the database
         if (wasCompleted != habit.isCompleted) {
-          needsUpdate = true;
           try {
             await SupabaseService.updateHabit(habit);
           } catch (e) {
@@ -114,17 +115,18 @@ class _HabitHomeState extends State<HabitHome> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'My Habits',
+          'Habits',
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: invincibleYellow,
           ),
         ),
         actions: [
           PopupMenuButton<String>(
+            icon: Icon(Icons.account_circle, color: invincibleYellow),
             onSelected: (value) {
               if (value == 'logout') {
-                _handleLogout();
+                _showLogoutConfirmation();
               }
             },
             itemBuilder: (BuildContext context) => [
@@ -145,7 +147,7 @@ class _HabitHomeState extends State<HabitHome> {
       body: _isLoading
           ? Center(
               child: CircularProgressIndicator(
-                color: Color(0xFFFFD200),
+                color: invincibleYellow,
               ),
             )
           : Padding(
@@ -153,64 +155,36 @@ class _HabitHomeState extends State<HabitHome> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-                        // Progress Summary Section - Big Floating Card
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Container(
-                margin: EdgeInsets.symmetric(horizontal: 8),
-                padding: EdgeInsets.all(32),
-                decoration: BoxDecoration(
-                  color: Color(0xFF00AEEF), // Same as background
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 20,
-                      offset: Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Column(
+                        // Progress Summary Section - Card matching habit width
+            Container(
+              width: double.infinity, // Make the container take full horizontal width
+              margin: EdgeInsets.only(bottom: 12),
+              padding: EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: invincibleYellow, // Yellow background - same as button
+                borderRadius: BorderRadius.circular(12),
+              ),
+                              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center, // Center children horizontally
                   children: [
-                    // Circular Progress Indicator
-                    CircularPercentIndicator(
-                      radius: 60.0,
-                      lineWidth: 10.0,
-                      percent: completionPercentage,
-                      center: Text(
-                        '$completedHabitsCount/${_habits.length}',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFFFD200),
-                        ),
-                      ),
-                      progressColor: Color(0xFFFFD200),
-                      backgroundColor: Colors.white.withOpacity(0.3),
-                      circularStrokeCap: CircularStrokeCap.round,
-                    ),
-                    SizedBox(height: 16),
-                    Text(
-                      'Completed today',
+                  // Circular Progress Indicator
+                  CircularPercentIndicator(
+                    radius: 80.0,
+                    lineWidth: 12.0,
+                    percent: completionPercentage,
+                    center: Text(
+                      '$completedHabitsCount/${_habits.length}',
                       style: TextStyle(
-                        fontSize: 16,
-                        color: Color(0xFFFFD200),
-                        fontWeight: FontWeight.w500,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
                       ),
                     ),
-                    SizedBox(height: 4),
-                    Text(
-                      _habits.isEmpty 
-                        ? 'Add habit'
-                        : '${(completionPercentage * 100).round()}% of your daily goals',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFFFFD200),
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
+                    progressColor: Color(0xFF00AEEF),
+                    backgroundColor: Color(0xFF00AEEF).withValues(alpha: 0.2),
+                    circularStrokeCap: CircularStrokeCap.round,
+                  ),
+                ],
               ),
             ),
             SizedBox(height: 32),
@@ -234,7 +208,7 @@ class _HabitHomeState extends State<HabitHome> {
       ),
               floatingActionButton: FloatingActionButton(
           onPressed: _showAddHabitDialog,
-          backgroundColor: Color(0xFFFFD200),
+          backgroundColor: invincibleYellow,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -251,11 +225,11 @@ class _HabitHomeState extends State<HabitHome> {
       child: Container(
         margin: EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: invincibleYellow, // Yellow background
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: Offset(0, 2),
             ),
@@ -273,7 +247,7 @@ class _HabitHomeState extends State<HabitHome> {
                 onChanged: (value) async {
                   await _toggleHabitComplete(habit);
                 },
-                activeColor: Color(0xFFFFD200),
+                activeColor: Color(0xFF00AEEF), // Blue color for checkbox
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(4),
                 ),
@@ -603,7 +577,7 @@ class _HabitHomeState extends State<HabitHome> {
                       child: ElevatedButton(
                         onPressed: _addHabit,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFFFFD200),
+                          backgroundColor: invincibleYellow,
                           foregroundColor: Colors.white,
                           padding: EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
@@ -735,6 +709,33 @@ class _HabitHomeState extends State<HabitHome> {
         ErrorDisplay.showError(context, error.toString());
       }
     }
+  }
+
+  void _showLogoutConfirmation() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Logout'),
+          content: Text('Are you sure you want to logout?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _handleLogout();
+              },
+              child: Text('Logout', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _handleLogout() async {

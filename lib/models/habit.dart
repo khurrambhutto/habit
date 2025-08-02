@@ -146,19 +146,19 @@ class Habit {
       if (!lastDate.isAtSameMomentAs(todayDate)) {
         isCompleted = false;
         
-        // Check if streak should be broken due to missed days
+        // Calculate days between last completion and today
         final daysDifference = todayDate.difference(lastDate).inDays;
-        if (daysDifference > 1) {
-          // More than 1 day gap - check for streak freeze usage
-          if (streakFreezes > 0 && daysDifference == 2) {
-            // Exactly 1 missed day and we have freezes - auto-use freeze
-            _autoUseStreakFreeze();
-          } else {
-            // Too many missed days or no freezes - break streak
-            currentStreak = 0;
-          }
+        
+        if (daysDifference == 1) {
+          // Yesterday - keep streak, just reset for new day
+          // Streak will increase when habit is completed today
+        } else if (daysDifference == 2 && streakFreezes > 0) {
+          // Missed exactly 1 day and have freezes - auto-use freeze
+          _autoUseStreakFreeze();
+        } else if (daysDifference > 1) {
+          // Missed 2+ days or no freezes - break streak
+          currentStreak = 0;
         }
-        // If daysDifference == 1 (yesterday), streak continues when completed today
       }
     }
   }
