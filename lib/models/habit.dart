@@ -84,7 +84,10 @@ class Habit {
           // Only allow uncompleting if it was completed today
           isCompleted = false;
           lastCompletedDate = null;
-          currentStreak = 0; // Reset streak when uncompleting today's task
+          // Decrement streak by 1 instead of resetting to 0
+          if (currentStreak > 0) {
+            currentStreak = currentStreak - 1;
+          }
         }
       }
     } else {
