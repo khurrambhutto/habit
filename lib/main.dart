@@ -3,8 +3,9 @@ import 'package:percent_indicator/percent_indicator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'models/habit.dart';
-import 'screens/habit_details_screen.dart';
+
 import 'screens/auth_screen.dart';
+import 'screens/habit_details_screen.dart';
 import 'services/supabase_service.dart';
 import 'widgets/error_display.dart';
 
@@ -33,13 +34,18 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Habit',
       theme: ThemeData(
-        primarySwatch: Colors.yellow,
-        scaffoldBackgroundColor: Color(0xFF00AEEF),
+        primarySwatch: Colors.green,
+        scaffoldBackgroundColor: Colors.grey.shade50,
         appBarTheme: AppBarTheme(
-          backgroundColor: Colors.transparent,
+          backgroundColor: Colors.grey.shade50,
           foregroundColor: Colors.black87,
           elevation: 0,
-          centerTitle: true,
+          centerTitle: false,
+          titleTextStyle: const TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 20,
+            color: Colors.black87,
+          ),
         ),
       ),
       home: const AuthWrapper(),
@@ -69,6 +75,12 @@ class _HabitHomeState extends State<HabitHome> {
   void initState() {
     super.initState();
     _loadHabits();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   Future<void> _loadHabits() async {
@@ -114,40 +126,60 @@ class _HabitHomeState extends State<HabitHome> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.grey.shade50,
+        surfaceTintColor: Colors.transparent,
+        scrolledUnderElevation: 0,
+        elevation: 0,
         title: Text(
           'Habits',
           style: TextStyle(
+            fontSize: 28,
             fontWeight: FontWeight.bold,
-            color: invincibleYellow,
+            color: Colors.black87,
           ),
         ),
         actions: [
-          PopupMenuButton<String>(
-            icon: Icon(Icons.account_circle, color: invincibleYellow),
-            onSelected: (value) {
-              if (value == 'logout') {
-                _showLogoutConfirmation();
-              }
-            },
-            itemBuilder: (BuildContext context) => [
-              PopupMenuItem<String>(
-                value: 'logout',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Logout'),
-                  ],
+          Container(
+            margin: EdgeInsets.only(right: 16),
+            child: PopupMenuButton<String>(
+              icon: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.person,
+                  color: Colors.grey.shade700,
+                  size: 20,
                 ),
               ),
-            ],
+              onSelected: (value) {
+                if (value == 'logout') {
+                  _showLogoutConfirmation();
+                }
+              },
+              itemBuilder: (BuildContext context) => [
+                PopupMenuItem<String>(
+                  value: 'logout',
+                  child: Row(
+                    children: [
+                      Icon(Icons.logout, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('Logout'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
       body: _isLoading
           ? Center(
               child: CircularProgressIndicator(
-                color: invincibleYellow,
+                color: Color(0xFF4CAF50),
               ),
             )
           : Padding(
@@ -155,35 +187,64 @@ class _HabitHomeState extends State<HabitHome> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-                        // Progress Summary Section - Card matching habit width
+            // Progress Summary Section
             Container(
-              width: double.infinity, // Make the container take full horizontal width
-              margin: EdgeInsets.only(bottom: 12),
+              width: double.infinity,
+              margin: EdgeInsets.only(bottom: 32),
               padding: EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: invincibleYellow, // Yellow background - same as button
-                borderRadius: BorderRadius.circular(12),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: Offset(0, 2),
+                  ),
+                ],
               ),
-                              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center, // Center children horizontally
-                  children: [
+              child: Column(
+                children: [
                   // Circular Progress Indicator
                   CircularPercentIndicator(
                     radius: 80.0,
                     lineWidth: 12.0,
                     percent: completionPercentage,
-                    center: Text(
-                      '$completedHabitsCount/${_habits.length}',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
+                    center: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '$completedHabitsCount/${_habits.length}',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                        Text(
+                          'Completed',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
                     ),
-                    progressColor: Color(0xFF00AEEF),
-                    backgroundColor: Color(0xFF00AEEF).withValues(alpha: 0.2),
+                    progressColor: Color(0xFF4CAF50), // Green color
+                    backgroundColor: Colors.grey.shade200,
                     circularStrokeCap: CircularStrokeCap.round,
                   ),
+                  SizedBox(height: 16),
+                  // Motivational text
+                  if (completedHabitsCount > 0)
+                    Text(
+                      "You're on a roll!",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -208,12 +269,12 @@ class _HabitHomeState extends State<HabitHome> {
       ),
               floatingActionButton: FloatingActionButton(
           onPressed: _showAddHabitDialog,
-          backgroundColor: invincibleYellow,
+          backgroundColor: Color(0xFF4CAF50),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          child: Icon(Icons.add, color: Colors.white),
-          elevation: 4,
+          child: Icon(Icons.add, color: Colors.white, size: 28),
+          elevation: 6,
         ),
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
@@ -221,12 +282,13 @@ class _HabitHomeState extends State<HabitHome> {
 
   Widget _buildHabitCard(Habit habit, int index) {
     return GestureDetector(
-      onLongPress: () => _showQuickActions(habit, index),
+      onTap: () async => await _toggleHabitComplete(habit),
       child: Container(
-        margin: EdgeInsets.only(bottom: 12),
+        margin: EdgeInsets.only(bottom: 16),
+        padding: EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: invincibleYellow, // Yellow background
-          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.05),
@@ -235,95 +297,81 @@ class _HabitHomeState extends State<HabitHome> {
             ),
           ],
         ),
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Row(
-            children: [
-            // Checkbox
-            Transform.scale(
-              scale: 1.2,
-              child: Checkbox(
-                value: habit.isCompleted,
-                onChanged: (value) async {
-                  await _toggleHabitComplete(habit);
-                },
-                activeColor: Color(0xFF00AEEF), // Blue color for checkbox
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-            ),
-            SizedBox(width: 16),
-            
-            // Habit name (vertically centered, left aligned)
-            Expanded(
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  _capitalizeWords(habit.name),
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    decoration: habit.isCompleted ? TextDecoration.lineThrough : null,
-                    color: habit.isCompleted ? Colors.grey.shade600 : Colors.black87,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top row with icon, name, and streak indicators
+            Row(
+              children: [
+                // Habit checkmark
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: habit.isCompleted 
+                        ? Color(0xFF4CAF50)
+                        : Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    habit.isCompleted ? Icons.check : null,
+                    color: Colors.white,
+                    size: 24,
                   ),
                 ),
-              ),
-            ),
-            
-            // Streak and freeze info side by side
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                // Streak freeze (left)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      '${habit.streakFreezes} ❄️',
-                      style: TextStyle(
-                        color: habit.streakFreezes > 0 ? Colors.blue.shade700 : Colors.grey.shade600,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                    ),
-                    if (habit.wasStreakFreezeRecentlyUsed)
-                      Container(
-                        margin: EdgeInsets.only(top: 2),
-                        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade100,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          'Used',
-                          style: TextStyle(
-                            color: Colors.blue.shade700,
-                            fontWeight: FontWeight.w500,
-                            fontSize: 9,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
                 SizedBox(width: 16),
-                // Streak (right)
+                
+                // Habit name
+                Expanded(
+                  child: Text(
+                    _capitalizeWords(habit.name),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                
+                // Streak indicators and details button
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    // Streak freeze indicator - always visible
                     Text(
-                      '${habit.currentStreak}',
+                      '❄️ ${habit.streakFreezes}',
                       style: TextStyle(
-                        color: habit.currentStreak > 0 ? Colors.orange.shade700 : Colors.grey.shade600,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 32,
+                        fontSize: 16,
+                        color: habit.streakFreezes > 0 
+                            ? Colors.blue.shade600 
+                            : Colors.grey.shade500,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    SizedBox(width: 4),
+                    SizedBox(width: 16),
+                    // Current streak indicator - always visible
                     Text(
-                      '🔥',
+                      '🔥 ${habit.currentStreak}',
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: 26,
+                        color: habit.currentStreak > 0 
+                            ? Colors.orange.shade600 
+                            : Colors.grey.shade500,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    // Habit details button
+                    IconButton(
+                      icon: Icon(
+                        Icons.info_outline,
+                        color: Colors.grey.shade600,
+                        size: 18,
+                      ),
+                      onPressed: () => _navigateToHabitDetails(habit, index),
+                      padding: EdgeInsets.all(4),
+                      constraints: BoxConstraints(
+                        minWidth: 28,
+                        minHeight: 28,
                       ),
                     ),
                   ],
@@ -331,178 +379,112 @@ class _HabitHomeState extends State<HabitHome> {
               ],
             ),
             
-                         // More options button
-             IconButton(
-               icon: Icon(Icons.more_vert, color: Colors.grey.shade600),
-               onPressed: () => _navigateToHabitDetails(habit, _habits.indexOf(habit)),
-             ),
+            SizedBox(height: 16),
+            
+            // Weekly calendar view
+            _buildWeeklyView(habit),
           ],
-          ),
         ),
       ),
     );
   }
 
-  void _showQuickActions(Habit habit, int index) {
-    showDialog(
-      context: context,
-      barrierColor: Colors.black54,
-      barrierDismissible: true,
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: Center(
-            child: Container(
-              margin: EdgeInsets.symmetric(horizontal: 20),
-              padding: EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 20,
-                    offset: Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Title
-                  Text(
-                    'Quick Actions',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  SizedBox(height: 24),
-                  
-                  // Use Streak Freeze button or message
-                  if (habit.streakFreezes > 0)
-                    Container(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: () async {
-                          await _useStreakFreeze(habit);
-                          Navigator.pop(context);
-                        },
-                        icon: Icon(Icons.ac_unit, color: Colors.white),
-                        label: Text(
-                          'Use Streak Freeze (${habit.streakFreezes} available)',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue.shade400,
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    )
-                  else
-                    Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.ac_unit, color: Colors.grey.shade500),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'No streak freezes available',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  
-                  SizedBox(height: 16),
-                  
-                  // Delete button
-                  Container(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _showDeleteConfirmation(habit);
-                      },
-                      icon: Icon(Icons.delete_outline, color: Colors.white),
-                      label: Text(
-                        'Delete Habit',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red.shade400,
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  ),
-                  
-                  SizedBox(height: 16),
-                  
-                  // Cancel button
-                  Container(
-                    width: double.infinity,
-                    child: TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text(
-                        'Cancel',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+
+
+  // Build weekly calendar view for habit
+  Widget _buildWeeklyView(Habit habit) {
+    final weekdays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+    final today = DateTime.now();
+    final monday = today.subtract(Duration(days: today.weekday - 1));
+    
+    return Column(
+      children: [
+        // Weekday labels
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: weekdays.map((day) => 
+            Expanded(
+              child: Text(
+                day,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
-          ),
-        );
-      },
+          ).toList(),
+        ),
+        
+        SizedBox(height: 8),
+        
+        // Calendar circles
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: List.generate(7, (index) {
+            final day = monday.add(Duration(days: index));
+            final isToday = _isSameDay(day, today);
+            final isCompleted = _isHabitCompletedOnDay(habit, day);
+            final isFuture = day.isAfter(today);
+            
+            return Expanded(
+              child: Container(
+                margin: EdgeInsets.symmetric(horizontal: 4),
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isFuture 
+                      ? Colors.grey.shade200
+                      : isCompleted 
+                          ? Color(0xFF4CAF50)
+                          : Colors.grey.shade200,
+                  border: isToday 
+                      ? Border.all(color: Color(0xFF4CAF50), width: 2)
+                      : null,
+                ),
+                child: Center(
+                  child: isFuture 
+                      ? null
+                      : Icon(
+                          isCompleted ? Icons.check : Icons.close,
+                          size: 16,
+                          color: isCompleted ? Colors.white : Colors.grey.shade600,
+                        ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ],
     );
   }
 
-  void _showDeleteConfirmation(Habit habit) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Delete Habit'),
-        content: Text('Are you sure you want to delete "${habit.name}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await _deleteHabit(habit);
-            },
-            child: Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
+  // Helper to check if habit was completed on specific day
+  bool _isHabitCompletedOnDay(Habit habit, DateTime day) {
+    if (habit.lastCompletedDate == null) return false;
+    
+    // For today, check current completion status
+    if (_isSameDay(day, DateTime.now())) {
+      return habit.isCompleted;
+    }
+    
+    // For other days, we'd need to check historical data
+    // For now, just return false for past days (we can improve this later)
+    return false;
   }
+
+  // Helper to check if two dates are the same day
+  bool _isSameDay(DateTime date1, DateTime date2) {
+    return date1.year == date2.year && 
+           date1.month == date2.month && 
+           date1.day == date2.day;
+  }
+
+
+
+
 
   void _showAddHabitDialog() {
     showDialog(
@@ -577,7 +559,7 @@ class _HabitHomeState extends State<HabitHome> {
                       child: ElevatedButton(
                         onPressed: _addHabit,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: invincibleYellow,
+                          backgroundColor: Color(0xFF4CAF50),
                           foregroundColor: Colors.white,
                           padding: EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
@@ -646,6 +628,8 @@ class _HabitHomeState extends State<HabitHome> {
     });
   }
 
+
+
   Future<void> _toggleHabitComplete(Habit habit) async {
     try {
       // Update locally first for immediate UI feedback
@@ -667,31 +651,7 @@ class _HabitHomeState extends State<HabitHome> {
     }
   }
 
-  Future<void> _useStreakFreeze(Habit habit) async {
-    try {
-      // Update locally first
-      setState(() {
-        habit.useStreakFreeze();
-      });
-      
-      // Then update in database
-      await SupabaseService.updateHabit(habit);
-      
-      if (mounted) {
-        ErrorDisplay.showSuccess(context, 'Streak freeze used!');
-      }
-    } catch (error) {
-      // Revert the change if database update fails
-      setState(() {
-        habit.streakFreezes++; // Add it back
-        habit.lastStreakFreezeUsed = null; // Reset usage time
-      });
-      
-      if (mounted) {
-        ErrorDisplay.showError(context, error.toString());
-      }
-    }
-  }
+
 
   Future<void> _deleteHabit(Habit habit) async {
     try {

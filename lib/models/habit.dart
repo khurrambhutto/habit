@@ -4,10 +4,14 @@ class Habit {
   bool isCompleted;
   int currentStreak;
   int bestStreak;
-  int streakFreezes; // Number of available streak freezes
+  int streakFreezes;
   DateTime createdDate;
   DateTime? lastCompletedDate;
-  DateTime? lastStreakFreezeUsed; // Track when streak freeze was last used
+  DateTime? lastStreakFreezeUsed;
+  
+  // Constants for better maintainability
+  static const int maxStreakFreezes = 3;
+  static const int streakFreezeEarnInterval = 3;
   
   Habit({
     String? id,
@@ -22,6 +26,16 @@ class Habit {
   }) : 
     id = id ?? DateTime.now().millisecondsSinceEpoch.toString(),
     createdDate = createdDate ?? DateTime.now();
+
+  // Optimized: Extract date-only logic to reduce repetition
+  static DateTime _dateOnly(DateTime dateTime) {
+    return DateTime(dateTime.year, dateTime.month, dateTime.day);
+  }
+
+  // Optimized: Single method to calculate days between dates
+  static int _daysBetween(DateTime date1, DateTime date2) {
+    return _dateOnly(date2).difference(_dateOnly(date1)).inDays;
+  }
 
   // Factory constructor for creating from JSON (Supabase)
   factory Habit.fromJson(Map<String, dynamic> json) {
@@ -65,162 +79,142 @@ class Habit {
     return json;
   }
 
+  // Optimized: Main toggle method with cleaner logic flow
   void toggleComplete() {
-    final today = DateTime.now();
-    final todayDate = DateTime(today.year, today.month, today.day);
+    final now = DateTime.now();
+    final today = _dateOnly(now);
     
-    // Check if habit should be auto-reset for new day
-    checkDailyReset();
+    // Always check for daily reset first
+    _performDailyReset(today);
     
     if (isCompleted) {
-      // Uncompleting - only if it was completed today
-      if (lastCompletedDate != null) {
-        final lastDate = DateTime(
-          lastCompletedDate!.year, 
-          lastCompletedDate!.month, 
-          lastCompletedDate!.day
-        );
-        if (lastDate.isAtSameMomentAs(todayDate)) {
-          // Only allow uncompleting if it was completed today
-          isCompleted = false;
-          lastCompletedDate = null;
-          // Decrement streak by 1 instead of resetting to 0
-          if (currentStreak > 0) {
-            currentStreak = currentStreak - 1;
-          }
-        }
-      }
+      _handleUncompletion(today);
     } else {
-      // Completing for today
-      isCompleted = true;
-      
-      // Calculate streak based on last completion
-      if (lastCompletedDate != null) {
-        final lastDate = DateTime(
-          lastCompletedDate!.year, 
-          lastCompletedDate!.month, 
-          lastCompletedDate!.day
-        );
-        final yesterday = todayDate.subtract(Duration(days: 1));
-        
-        if (lastDate.isAtSameMomentAs(yesterday)) {
-          // Consecutive day - increase streak
-          currentStreak++;
-        } else if (lastDate.isAtSameMomentAs(todayDate)) {
-          // Already completed today (shouldn't happen after reset check)
-          return;
-        } else {
-          // Gap in streak - reset to 1
-          currentStreak = 1;
-        }
-      } else {
-        // First completion ever
-        currentStreak = 1;
-      }
-      
-      // Set the completion date to today
-      lastCompletedDate = today;
-      
-      // Update best streak if current is higher
-      if (currentStreak > bestStreak) {
-        bestStreak = currentStreak;
-      }
-      
-      // Check if user earned a streak freeze (3 consecutive days)
-      _checkStreakFreezeEarning();
+      _handleCompletion(now, today);
     }
   }
 
-  // Check if habit should be reset for a new day
-  void checkDailyReset() {
-    if (!isCompleted) return; // Already unchecked
+  // Optimized: Separated uncompletion logic
+  void _handleUncompletion(DateTime today) {
+    if (lastCompletedDate == null) return;
     
-    final today = DateTime.now();
-    final todayDate = DateTime(today.year, today.month, today.day);
+    final lastDate = _dateOnly(lastCompletedDate!);
+    if (lastDate.isAtSameMomentAs(today)) {
+      isCompleted = false;
+      lastCompletedDate = null;
+      currentStreak = (currentStreak > 0) ? currentStreak - 1 : 0;
+    }
+  }
+
+  // Optimized: Separated completion logic with cleaner streak calculation
+  void _handleCompletion(DateTime now, DateTime today) {
+    isCompleted = true;
     
-    if (lastCompletedDate != null) {
-      final lastDate = DateTime(
-        lastCompletedDate!.year, 
-        lastCompletedDate!.month, 
-        lastCompletedDate!.day
-      );
-      
-      // If last completion was not today, reset the habit
-      if (!lastDate.isAtSameMomentAs(todayDate)) {
-        isCompleted = false;
-        
-        // Calculate days between last completion and today
-        final daysDifference = todayDate.difference(lastDate).inDays;
-        
-        if (daysDifference == 1) {
-          // Yesterday - keep streak, just reset for new day
-          // Streak will increase when habit is completed today
-        } else if (daysDifference == 2 && streakFreezes > 0) {
-          // Missed exactly 1 day and have freezes - auto-use freeze
-          _autoUseStreakFreeze();
-        } else if (daysDifference > 1) {
-          // Missed 2+ days or no freezes - break streak
+    // Calculate new streak
+    currentStreak = _calculateNewStreak(today);
+    
+    // Update completion date
+    lastCompletedDate = now;
+    
+    // Update best streak if needed
+    if (currentStreak > bestStreak) {
+      bestStreak = currentStreak;
+    }
+    
+    // Check for streak freeze earning
+    _checkStreakFreezeEarning();
+  }
+
+  // Optimized: Cleaner streak calculation
+  int _calculateNewStreak(DateTime today) {
+    if (lastCompletedDate == null) return 1;
+    
+    final lastDate = _dateOnly(lastCompletedDate!);
+    final yesterday = today.subtract(const Duration(days: 1));
+    
+    if (lastDate.isAtSameMomentAs(yesterday)) {
+      return currentStreak + 1; // Consecutive day
+    } else if (lastDate.isAtSameMomentAs(today)) {
+      return currentStreak; // Already completed today (edge case)
+    } else {
+      return 1; // Gap in streak, restart
+    }
+  }
+
+  // Optimized: Renamed and simplified daily reset
+  void _performDailyReset(DateTime today) {
+    if (!isCompleted || lastCompletedDate == null) return;
+    
+    final lastDate = _dateOnly(lastCompletedDate!);
+    if (lastDate.isAtSameMomentAs(today)) return; // Same day, no reset needed
+    
+    // Reset completion status for new day
+    isCompleted = false;
+    
+    // Handle streak based on gap
+    final daysMissed = _daysBetween(lastDate, today);
+    _handleStreakForMissedDays(daysMissed);
+  }
+
+  // Optimized: Cleaner missed days handling
+  void _handleStreakForMissedDays(int daysMissed) {
+    switch (daysMissed) {
+      case 1:
+        // Yesterday - streak continues, no action needed
+        break;
+      case 2:
+        // Missed exactly 1 day - try to use streak freeze
+        if (streakFreezes > 0) {
+          _useStreakFreeze();
+        } else {
           currentStreak = 0;
         }
-      }
+        break;
+      default:
+        // Missed 2+ days - break streak
+        if (daysMissed > 1) {
+          currentStreak = 0;
+        }
     }
   }
 
-  // Automatically use a streak freeze for missed day
-  void _autoUseStreakFreeze() {
+  // Optimized: Simplified streak freeze usage
+  void _useStreakFreeze() {
     if (streakFreezes > 0) {
       streakFreezes--;
       lastStreakFreezeUsed = DateTime.now();
-      // Keep the streak intact
     }
   }
 
-  // Check if user earned a streak freeze by completing 3 consecutive days
+  // Optimized: Cleaner streak freeze earning
   void _checkStreakFreezeEarning() {
-    // Earn 1 streak freeze every 3 days (at days 3, 6, 9, 12, etc.)
-    // Maximum of 3 streak freezes
-    if (currentStreak % 3 == 0 && currentStreak > 0 && streakFreezes < 3) {
+    if (currentStreak > 0 && 
+        currentStreak % streakFreezeEarnInterval == 0 && 
+        streakFreezes < maxStreakFreezes) {
       streakFreezes++;
     }
   }
 
-  // Use a streak freeze to maintain streak when missing a day
+  // Public method for manual streak freeze usage
   bool useStreakFreeze() {
     if (streakFreezes > 0) {
-      streakFreezes--;
-      lastStreakFreezeUsed = DateTime.now();
+      _useStreakFreeze();
       return true;
     }
     return false;
   }
 
-  // Check if streak should be reset due to missed days, considering streak freezes
-  void checkStreakReset() {
-    if (lastCompletedDate != null && !isCompleted) {
-      final today = DateTime.now();
-      final todayDate = DateTime(today.year, today.month, today.day);
-      final lastDate = DateTime(
-        lastCompletedDate!.year, 
-        lastCompletedDate!.month, 
-        lastCompletedDate!.day
-      );
-      final daysDifference = todayDate.difference(lastDate).inDays;
-      
-      if (daysDifference > 1) {
-        // Check if we can use a streak freeze
-        if (streakFreezes > 0 && daysDifference == 2) {
-          // Only use streak freeze for exactly 2 days gap (1 missed day)
-          useStreakFreeze();
-          // Don't reset streak, just update last completed date to yesterday
-          lastCompletedDate = todayDate.subtract(Duration(days: 1));
-        } else {
-          // Reset streak if gap is too large or no freezes available
-          currentStreak = 0;
-        }
-      }
-    }
+  // PUBLIC COMPATIBILITY METHODS (for existing main.dart and tests)
+  void checkDailyReset() {
+    final today = _dateOnly(DateTime.now());
+    _performDailyReset(today);
   }
-
+  
+  void checkStreakReset() {
+    // Legacy method - now just calls the optimized daily reset logic
+    checkDailyReset();
+  }
+  
   void resetStreak() {
     currentStreak = 0;
     bestStreak = 0;
@@ -230,19 +224,19 @@ class Habit {
     lastStreakFreezeUsed = null;
   }
 
-  // Get streak freeze status for display
+  // Optimized: Better string formatting
   String getStreakFreezeStatus() {
-    if (streakFreezes > 0) {
-      return '❄️ Streak Freezes: $streakFreezes';
-    }
-    return '';
+    return streakFreezes > 0 ? '❄️ Streak Freezes: $streakFreezes' : '';
   }
 
-  // Check if streak freeze was recently used
+  // Optimized: More descriptive property name and cleaner logic
   bool get wasStreakFreezeRecentlyUsed {
     if (lastStreakFreezeUsed == null) return false;
-    final now = DateTime.now();
-    final difference = now.difference(lastStreakFreezeUsed!).inDays;
-    return difference <= 1; // Consider "recently used" if within 1 day
+    return _daysBetween(lastStreakFreezeUsed!, DateTime.now()) <= 1;
   }
-} 
+
+  // Added: Helpful getters for UI
+  bool get isOnStreak => currentStreak > 0;
+  bool get canEarnStreakFreeze => (currentStreak + 1) % streakFreezeEarnInterval == 0 && streakFreezes < maxStreakFreezes;
+  String get streakDisplay => currentStreak > 0 ? '🔥 $currentStreak days' : 'Start your streak!';
+}
